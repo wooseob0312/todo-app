@@ -7,8 +7,8 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial;
-    background: #ffeef2;
+    font-family: -apple-system, BlinkMacSystemFont;
+    background: #f9f9fb;
 }
 
 .container {
@@ -20,32 +20,62 @@ body {
 .left {
     width: 50%;
     background: white;
+    border-right: 1px solid #eee;
     padding: 20px;
-    border-right: 2px solid #eee;
 }
 
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.nav {
+    cursor: pointer;
+    font-size: 20px;
+}
+
+/* 캘린더 */
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 8px;
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
 .day {
-    padding: 15px;
     text-align: center;
-    border-radius: 8px;
+    padding: 10px;
+    border-radius: 10px;
     cursor: pointer;
-    background: #f0f0f0;
+    position: relative;
 }
 
 .day:hover {
-    background: #ffb6c1;
+    background: #eee;
+}
+
+.today {
+    background: #ff4d6d;
+    color: white;
 }
 
 .selected {
+    border: 2px solid #ff4d6d;
+}
+
+/* 일정 점 */
+.dot {
+    width: 5px;
+    height: 5px;
     background: #ff4d6d;
-    color: white;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 /* 오른쪽 */
@@ -59,36 +89,41 @@ h1 {
     color: #ff4d6d;
 }
 
+/* 입력 */
 input, button {
     width: 100%;
     padding: 10px;
     margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
 }
 
 button {
     background: #ff4d6d;
     color: white;
     border: none;
-    border-radius: 8px;
-    cursor: pointer;
 }
 
 /* 일정 카드 */
 .todo {
     margin-top: 10px;
     padding: 12px;
-    border-radius: 10px;
+    border-radius: 12px;
     color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+/* 작은 삭제 버튼 */
 .delete {
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+    border-radius: 6px;
     background: white;
     color: black;
     border: none;
-    padding: 5px 8px;
     cursor: pointer;
 }
 </style>
@@ -98,30 +133,36 @@ button {
 
 <div class="container">
 
-    <!-- 왼쪽 캘린더 -->
-    <div class="left">
-        <h2>📅 날짜 선택</h2>
-        <div id="calendar" class="calendar"></div>
+<!-- 왼쪽 -->
+<div class="left">
+    <div class="header">
+        <span class="nav" onclick="changeMonth(-1)">‹</span>
+        <span id="monthYear"></span>
+        <span class="nav" onclick="changeMonth(1)">›</span>
     </div>
 
-    <!-- 오른쪽 -->
-    <div class="right">
-        <h1>💖 우리의 일정 💖</h1>
+    <div id="calendar" class="calendar"></div>
+</div>
 
-        <input type="date" id="date">
-        <input type="time" id="time">
-        <input type="text" id="task" placeholder="할 일을 입력하세요">
-        <input type="color" id="color" value="#ff4d6d">
+<!-- 오른쪽 -->
+<div class="right">
+    <h1>💖 우리의 일정 💖</h1>
 
-        <button onclick="addTodo()">추가</button>
+    <input type="date" id="date">
+    <input type="time" id="time">
+    <input type="text" id="task" placeholder="할 일을 입력하세요">
+    <input type="color" id="color" value="#ff4d6d">
 
-        <div id="list"></div>
-    </div>
+    <button onclick="addTodo()">추가</button>
+
+    <div id="list"></div>
+</div>
 
 </div>
 
 <script>
 let todos = JSON.parse(localStorage.getItem("todos")) || [];
+let currentDate = new Date();
 let selectedDate = "";
 
 // 저장
@@ -136,47 +177,71 @@ function addTodo() {
     let task = document.getElementById("task").value;
     let color = document.getElementById("color").value;
 
-    if (!date || !task) {
-        alert("날짜와 할 일을 입력하세요!");
-        return;
-    }
+    if (!date || !task) return alert("입력 필요");
 
     todos.push({ date, time, task, color });
     save();
     render();
+    generateCalendar();
 }
 
-// 삭제 (버튼 문제 해결됨)
+// 삭제
 function deleteTodo(index) {
     todos.splice(index, 1);
     save();
     render();
+    generateCalendar();
 }
 
-// 달력 생성 (간단 버전)
+// 캘린더 생성
 function generateCalendar() {
     let cal = document.getElementById("calendar");
     cal.innerHTML = "";
 
-    for (let i = 1; i <= 31; i++) {
+    let year = currentDate.getFullYear();
+    let month = currentDate.getMonth();
+
+    document.getElementById("monthYear").innerText =
+        `${year}년 ${month + 1}월`;
+
+    let firstDay = new Date(year, month, 1).getDay();
+    let lastDate = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        cal.innerHTML += `<div></div>`;
+    }
+
+    for (let i = 1; i <= lastDate; i++) {
+        let dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+
+        let hasTodo = todos.some(t => t.date === dateStr);
+
         let day = document.createElement("div");
         day.className = "day";
         day.innerText = i;
 
+        if (dateStr === selectedDate) day.classList.add("selected");
+
         day.onclick = () => {
-            selectedDate = `2026-03-${String(i).padStart(2,'0')}`;
+            selectedDate = dateStr;
             render();
-            highlight(day);
+            generateCalendar();
         };
+
+        if (hasTodo) {
+            let dot = document.createElement("div");
+            dot.className = "dot";
+            day.appendChild(dot);
+        }
 
         cal.appendChild(day);
     }
 }
 
-// 선택 표시
-function highlight(selected) {
-    document.querySelectorAll(".day").forEach(d => d.classList.remove("selected"));
-    selected.classList.add("selected");
+// 월 이동
+function changeMonth(diff) {
+    currentDate.setMonth(currentDate.getMonth() + diff);
+    generateCalendar();
 }
 
 // 출력
@@ -188,11 +253,13 @@ function render() {
         ? todos.filter(t => t.date === selectedDate)
         : todos;
 
+    filtered.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
     filtered.forEach((todo, i) => {
         list.innerHTML += `
             <div class="todo" style="background:${todo.color}">
-                <span>${todo.date} ${todo.time || ""} - ${todo.task}</span>
-                <button class="delete" onclick="deleteTodo(${i})">X</button>
+                <span>${todo.time || ""} ${todo.task}</span>
+                <button class="delete" onclick="deleteTodo(${i})">✕</button>
             </div>
         `;
     });
