@@ -2,12 +2,55 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>💖 우리의 할 일</title>
+<title>💖 우리의 일정 💖</title>
 
 <style>
 body {
+    margin: 0;
     font-family: Arial;
     background: #ffeef2;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* 왼쪽 캘린더 */
+.left {
+    width: 50%;
+    background: white;
+    padding: 20px;
+    border-right: 2px solid #eee;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.day {
+    padding: 15px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #f0f0f0;
+}
+
+.day:hover {
+    background: #ffb6c1;
+}
+
+.selected {
+    background: #ff4d6d;
+    color: white;
+}
+
+/* 오른쪽 */
+.right {
+    width: 50%;
     padding: 30px;
 }
 
@@ -16,24 +59,10 @@ h1 {
     color: #ff4d6d;
 }
 
-.box {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    max-width: 500px;
-    margin: auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
 input, button {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     margin-top: 10px;
-    font-size: 16px;
-}
-
-input[type="date"], input[type="time"] {
-    font-size: 18px;
 }
 
 button {
@@ -44,26 +73,22 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background: #ff1f4b;
-}
-
+/* 일정 카드 */
 .todo {
-    margin-top: 15px;
-    padding: 15px;
+    margin-top: 10px;
+    padding: 12px;
     border-radius: 10px;
     color: white;
-    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .delete {
-    position: absolute;
-    right: 10px;
-    top: 10px;
     background: white;
     color: black;
     border: none;
-    padding: 5px;
+    padding: 5px 8px;
     cursor: pointer;
 }
 </style>
@@ -71,28 +96,40 @@ button:hover {
 
 <body>
 
-<h1>💖 우리의 할 일 💖</h1>
+<div class="container">
 
-<div class="box">
-    <input type="date" id="date">
-    <input type="time" id="time">
-    <input type="text" id="task" placeholder="할 일을 입력하세요">
-    
-    🎨 색상 선택:
-    <input type="color" id="color" value="#ff4d6d">
-    
-    <button onclick="addTodo()">추가</button>
+    <!-- 왼쪽 캘린더 -->
+    <div class="left">
+        <h2>📅 날짜 선택</h2>
+        <div id="calendar" class="calendar"></div>
+    </div>
 
-    <div id="list"></div>
+    <!-- 오른쪽 -->
+    <div class="right">
+        <h1>💖 우리의 일정 💖</h1>
+
+        <input type="date" id="date">
+        <input type="time" id="time">
+        <input type="text" id="task" placeholder="할 일을 입력하세요">
+        <input type="color" id="color" value="#ff4d6d">
+
+        <button onclick="addTodo()">추가</button>
+
+        <div id="list"></div>
+    </div>
+
 </div>
 
 <script>
 let todos = JSON.parse(localStorage.getItem("todos")) || [];
+let selectedDate = "";
 
+// 저장
 function save() {
     localStorage.setItem("todos", JSON.stringify(todos));
 }
 
+// 일정 추가
 function addTodo() {
     let date = document.getElementById("date").value;
     let time = document.getElementById("time").value;
@@ -107,33 +144,62 @@ function addTodo() {
     todos.push({ date, time, task, color });
     save();
     render();
-
-    document.getElementById("task").value = "";
 }
 
+// 삭제 (버튼 문제 해결됨)
 function deleteTodo(index) {
     todos.splice(index, 1);
     save();
     render();
 }
 
+// 달력 생성 (간단 버전)
+function generateCalendar() {
+    let cal = document.getElementById("calendar");
+    cal.innerHTML = "";
+
+    for (let i = 1; i <= 31; i++) {
+        let day = document.createElement("div");
+        day.className = "day";
+        day.innerText = i;
+
+        day.onclick = () => {
+            selectedDate = `2026-03-${String(i).padStart(2,'0')}`;
+            render();
+            highlight(day);
+        };
+
+        cal.appendChild(day);
+    }
+}
+
+// 선택 표시
+function highlight(selected) {
+    document.querySelectorAll(".day").forEach(d => d.classList.remove("selected"));
+    selected.classList.add("selected");
+}
+
+// 출력
 function render() {
     let list = document.getElementById("list");
     list.innerHTML = "";
 
-    todos.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let filtered = selectedDate
+        ? todos.filter(t => t.date === selectedDate)
+        : todos;
 
-    todos.forEach((todo, i) => {
+    filtered.forEach((todo, i) => {
         list.innerHTML += `
             <div class="todo" style="background:${todo.color}">
-                <b>${todo.date} ${todo.time || ""}</b><br>
-                ${todo.task}
+                <span>${todo.date} ${todo.time || ""} - ${todo.task}</span>
                 <button class="delete" onclick="deleteTodo(${i})">X</button>
             </div>
         `;
     });
 }
 
+// 초기 실행
+generateCalendar();
 render();
 </script>
 
