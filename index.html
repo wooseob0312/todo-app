@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>📅 할 일 캘린더</title>
+
+<style>
+    body {
+        font-family: Arial;
+        background: #f5f5f5;
+        padding: 30px;
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    .box {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 500px;
+        margin: auto;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+        padding: 10px;
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #45a049;
+    }
+
+    .todo {
+        margin-top: 15px;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>📅 할 일 캘린더</h1>
+
+<div class="box">
+    <input type="date" id="date">
+    <input type="text" id="task" placeholder="할 일을 입력하세요">
+    <button onclick="addTodo()">추가</button>
+
+    <div id="list"></div>
+</div>
+
+<script>
+    let todos = JSON.parse(localStorage.getItem("todos")) || [];
+
+    function save() {
+        localStorage.setItem("todos", JSON.stringify(todos));
+    }
+
+    function addTodo() {
+        let date = document.getElementById("date").value;
+        let task = document.getElementById("task").value;
+
+        if (!date || !task) {
+            alert("날짜와 할 일을 입력하세요!");
+            return;
+        }
+
+        todos.push({ date, task });
+        save();
+        render();
+
+        document.getElementById("task").value = "";
+    }
+
+    function deleteTodo(index) {
+        todos.splice(index, 1);
+        save();
+        render();
+    }
+
+    function render() {
+        let list = document.getElementById("list");
+        list.innerHTML = "";
+
+        todos.forEach((todo, i) => {
+            list.innerHTML += `
+                <div class="todo">
+                    <b>${todo.date}</b><br>
+                    ${todo.task}
+                    <br>
+                    <button onclick="deleteTodo(${i})">삭제</button>
+                </div>
+            `;
+        });
+    }
+
+    render();
+</script>
+
+</body>
+</html>
